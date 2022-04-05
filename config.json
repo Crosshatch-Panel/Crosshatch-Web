@@ -1,0 +1,12 @@
+{
+    "web": {
+        "port": 3000,
+        "secret": "ZzLBe8g9mRq6K8MQFgM3a69gX9xpKWA43aYjBFPwQkhbppQ4y3kwEDGu6hGTfJmg"
+    },
+    "users": [
+        {
+            "username": "test",
+            "password": "test"
+        }
+    ]
+}

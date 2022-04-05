@@ -1,0 +1,22 @@
+{
+  "name": "Crosshatch-Web",
+  "version": "1.0.0",
+  "main": "app.js",
+  "repository": "https://github.com/Crosshatch-Panel/Crosshatch-Web.git",
+  "author": "Jamie_ <volcanomonster07@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@fastify/session": "^8.0.0",
+    "axios": "^0.26.1",
+    "chalk": "4.1.2",
+    "csrf": "^3.1.0",
+    "ejs": "^3.1.6",
+    "fastify": "^3.28.0",
+    "fastify-cookie": "^5.6.0",
+    "fastify-formbody": "^5.2.0",
+    "fastify-static": "^4.6.1",
+    "figlet": "^1.5.2",
+    "path": "^0.12.7",
+    "point-of-view": "^5.2.0"
+  }
+}
