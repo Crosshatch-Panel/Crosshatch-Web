@@ -6,5 +6,9 @@
         "_note": "This is the password used to login",
         "secret": "test123",
         "__note": "This is the secret key for the cookies. Make this secure."
-    }
+    },
+    "nodes": [{
+        "name": "us01",
+        "url": "7071"
+    }]
 }

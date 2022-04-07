@@ -6,6 +6,10 @@ router.get('/', async (req, res) => {
     res.render("login");
 })
 
+router.get('/test', async (req, res) => {
+    res.render("test", { nodes: settings.nodes })
+})
+
 router.post('/auth/login', async (req, res) => {
     if (settings.auth.password == req.body.password) {
         req.session.authenticated = true;

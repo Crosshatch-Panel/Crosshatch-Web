@@ -15,6 +15,8 @@ app.use(express.urlencoded({ extended: false }));
 
 app.set('views', path.join(__dirname, '/views'));
 
+app.use(express.static('public'))
+
 app.use(session({
   secret: settings.auth.secret,
   resave: true,
