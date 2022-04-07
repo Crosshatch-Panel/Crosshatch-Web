@@ -10,6 +10,14 @@ module.exports = {
             });
         });
     },
+    listAllImages: async () => {
+        return new Promise((resolve, reject) => {
+            docker.listImages(function (err, images) {
+                if (err) return reject(err)
+                resolve(images)
+            });
+        });
+    },
     getInfo: async (id) => {
         return new Promise(async (resolve, reject) => {
             const container = await docker.getContainer(id);

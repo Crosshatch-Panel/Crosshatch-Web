@@ -8,6 +8,7 @@ const axios = require('axios').default;
 const settings = require('./settings.json');
 const expressWs = require('express-ws');
 expressWs(app)
+const package = require("./package.json")
 
 app.set('view engine', 'ejs');
 
@@ -24,7 +25,7 @@ app.use(session({
 }));
 
 axios.get('https://api.github.com/repos/JamieGrimwood/Crosshatch/releases/latest').then(function (response) {
-  if (response.data.tag_name === "0.0.2") {
+  if (response.data.tag_name === package.version) {
     console.log(chalk.cyanBright(textSync('Crosshatch', { horizontalLayout: 'fitted' })));
     console.log(`${chalk.yellow.bold('#=============================')}${chalk.grey.bold('[')} ${chalk.cyanBright.bold('Crosshatch')} ${chalk.grey.bold(']')}${chalk.yellow.bold('=============================#')}`)
     console.log(`${chalk.yellow.bold('#')}                          ${chalk.magenta.bold('Created by: Jamie09__')}                         ${chalk.yellow.bold('#')}`);

@@ -1,13 +1,15 @@
 const express = require('express')
 const router = express.Router();
 const settings = require('../settings.json')
+const controller = require('../controller')
 
 router.get('/', async (req, res) => {
     res.render("login");
 })
 
 router.get('/test', async (req, res) => {
-    res.render("test", { nodes: settings.nodes })
+    const images = await controller.listAllImages().catch(error => { res.send(error) })
+    res.render("test", { nodes: settings.nodes, total_docker_images: images.length })
 })
 
 router.post('/auth/login', async (req, res) => {
