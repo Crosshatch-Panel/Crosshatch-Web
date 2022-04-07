@@ -18,5 +18,8 @@
     "figlet": "^1.5.2",
     "path": "^0.12.7",
     "point-of-view": "^5.2.0"
+  },
+  "devDependencies": {
+    "pino-pretty": "^7.6.1"
   }
 }

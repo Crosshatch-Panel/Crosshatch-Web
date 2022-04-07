@@ -3,7 +3,7 @@ const axios = require('axios').default;
 const { textSync } = require('figlet');
 const chalk = require('chalk');
 const fastify = require('fastify');
-const app = fastify({ logger: true });
+const app = require('fastify')({ logger: { level: 'info' } })
 const session = require('@fastify/session');
 const path = require('path')
 

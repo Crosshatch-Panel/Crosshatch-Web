@@ -1,6 +1,7 @@
 const Tokens = require('csrf')
 const fs = require('fs');
 const csrf = new Tokens()
+const config = require("../config.json")
 
 const secret = csrf.secretSync()
 
@@ -15,17 +16,16 @@ async function router(app, opts) {
 
     app.get('/login', async (request, reply) => {
         const token = csrf.create(secret)
-        reply.view("./views/login", { csrftoken: token, error: "" });
+        reply.view("./views/login", { csrftoken: token });
     })
 
     app.post('/login', async (request, reply) => {
-        console.log(request.body)
-        const body = JSON.parse(request.body)
+        const body = JSON.parse(JSON.stringify(request.body))
         if (!csrf.verify(secret, body.csrftoken)) return reply.send({ "error": "csrftokenmissmatch" })
         const results = [];
-        for (var i = 0; i < obj.list.length; i++) {
-            if (obj.list[i]["username"] == body.username) {
-                results.push(obj.list[i]);
+        for (var i = 0; i < config.users.length; i++) {
+            if (config.users[i]["username"] == body.username) {
+                results.push(config.users[i]);
             }
         }
         if (!results) {
@@ -33,9 +33,12 @@ async function router(app, opts) {
         }
         const user = results[0]
         if (user.password != body.password) {
+            console.log(1)
             return reply.redirect("/login?invalid")
         }
+        console.log(user)
         request.session.set('account', user);
+        console.log(2)
         reply.redirect("/dashboard")
     })
 
