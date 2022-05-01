@@ -1,134 +1,145 @@
-const Docker = require('dockerode');
-const docker = new Docker();
+const axios = require('axios');
+const settings = require('./settings.json');
 
 module.exports = {
     listAll: async () => {
-        return new Promise((resolve, reject) => {
-            docker.listContainers({ all: true }, function (err, containers) {
-                if (err) return reject(err)
-                resolve(containers)
-            });
+        return new Promise(async (resolve, reject) => {
+            let containers = []
+            for (let i = 0; i < settings.nodes.length; i++) {
+                const res = await axios.get(`${settings.nodes[i].url}/containers`, {
+                    headers: {
+                        'password': settings.nodes[i].password
+                    }
+                });
+                for (let b = 0; b < res.data.length; b++) {
+                    containers.push({ "Id": res.data[b].Id, "Name": res.data[b].Names[0].replace("/", ""), "Node": settings.nodes[i].name, "Image": res.data[b].Image, "State": res.data[b].State, "Status": res.data[b].Status, "Uptime": res.data[b].Uptime })
+                }
+            }
+            resolve(containers)
         });
     },
     listAllImages: async () => {
-        return new Promise((resolve, reject) => {
-            docker.listImages(function (err, images) {
-                if (err) return reject(err)
-                resolve(images)
-            });
+        return new Promise(async (resolve, reject) => {
+            let images
+            for (let i = 0; i < settings.nodes.length; i++) {
+                const res = await axios.get(`${settings.nodes[i].url}/images`, {
+                    headers: {
+                        'password': settings.nodes[i].password
+                    }
+                });
+                images = res.data
+            }
+            resolve(images)
         });
     },
-    getInfo: async (id) => {
+    getInfo: async (node, id) => {
         return new Promise(async (resolve, reject) => {
-            const container = await docker.getContainer(id);
-            container.inspect(function (err, data) {
-                if (err) return reject(err)
-                if (data.Id != id) reject("notvalid")
-
-                resolve(data)
+            const node_name = settings.nodes.find(nodes => nodes.name === node)
+            if (!node_name) return reject("Node not found")
+            const res = await axios.get(`${node_name.url}/container/${id}`, {
+                headers: {
+                    'password': node_name.password
+                }
             });
+            res.data.container_info.Node = node_name
+            res.data.container_info.Name = res.data.container_info.Name.replace("/", "")
+            resolve(res.data.container_info)
         });
     },
-    getContainer: async (id) => {
+    startContainer: async (node, id) => {
         return new Promise(async (resolve, reject) => {
-            const container = await docker.getContainer(id);
-            container.inspect(function (err, data) {
-                if (err) return reject(err)
-                if (data.Id != id) reject("notvalid")
+            const node_name = settings.nodes.find(nodes => nodes.name === node)
+            if (!node_name) return reject("Node not found")
+            const res = await axios.get(`${node_name.url}/container/${id}/actions/start`, {
+                headers: {
+                    'password': node_name.password
+                }
             });
-            resolve(container)
-        });
-    },
-    startContainer: async (id) => {
-        return new Promise(async (resolve, reject) => {
-            const container = await docker.getContainer(id);
-            container.start()
-            resolve(true)
+            if (res.data.status === "STARTED") {
+                resolve(true)
+            } else {
+                reject(res.data.status)
+            }
         })
     },
-    stopContainer: async (id) => {
+    stopContainer: async (node, id) => {
         return new Promise(async (resolve, reject) => {
-            const container = await docker.getContainer(id);
-            container.stop().catch(err => {
-                reject(err.statusCode)
-            })
-            resolve(true)
+            const node_name = settings.nodes.find(nodes => nodes.name === node)
+            if (!node_name) return reject("Node not found")
+            const res = await axios.get(`${node_name.url}/container/${id}/actions/stop`, {
+                headers: {
+                    'password': node_name.password
+                }
+            });
+            if (res.data.status === "STOPPED") {
+                resolve(true)
+            } else {
+                reject(res.data.status)
+            }
         })
     },
-    killContainer: async (id) => {
+    killContainer: async (node, id) => {
         return new Promise(async (resolve, reject) => {
-            const container = await docker.getContainer(id);
-            container.kill().catch(err => {
-                reject(err.statusCode)
-            })
-            resolve(true)
+            const node_name = settings.nodes.find(nodes => nodes.name === node)
+            if (!node_name) return reject("Node not found")
+            const res = await axios.get(`${node_name.url}/container/${id}/actions/kill`, {
+                headers: {
+                    'password': node_name.password
+                }
+            });
+            if (res.data.status === "KILLED") {
+                resolve(true)
+            } else {
+                reject(res.data.status)
+            }
         })
     },
     startAllContainers: async () => {
         return new Promise(async (resolve, reject) => {
-            docker.listContainers({ all: true }, function (err, containers) {
-                if (err) reject(false);
-                containers.forEach(function (containerInfo) {
-                    const container = docker.getContainer(containerInfo.Id);
-
-                    container.start().catch(error => {
-                        if (error.statusCode === 304) return
-                    });
+            for (let i = 0; i < settings.nodes.length; i++) {
+                const res = await axios.get(`${settings.nodes[i].url}/container/all/actions/start`, {
+                    headers: {
+                        'password': settings.nodes[i].password
+                    }
                 });
-            });
-            resolve(true);
+                if (res.data.status === "STARTED") {
+                    resolve(true)
+                } else {
+                    reject(res.data.status)
+                }
+            }
         })
     },
     stopAllContainers: async () => {
         return new Promise(async (resolve, reject) => {
-            docker.listContainers({ all: true }, function (err, containers) {
-                if (err) reject(false);
-                containers.forEach(function (containerInfo) {
-                    docker.getContainer(containerInfo.Id).stop().catch(error => {
-                        if (error.statusCode === 304) return
-                    });
+            for (let i = 0; i < settings.nodes.length; i++) {
+                const res = await axios.get(`${settings.nodes[i].url}/container/all/actions/stop`, {
+                    headers: {
+                        'password': settings.nodes[i].password
+                    }
                 });
-            });
-            resolve(true);
+                if (res.data.status === "STOPPED") {
+                    resolve(true)
+                } else {
+                    reject(res.data.status)
+                }
+            }
         })
     },
     killAllContainers: async () => {
         return new Promise(async (resolve, reject) => {
-            docker.listContainers({ all: true }, function (err, containers) {
-                if (err) reject(false);
-                containers.forEach(function (containerInfo) {
-                    docker.getContainer(containerInfo.Id).kill().catch(error => {
-                        if (error.statusCode === 409) return
-                    });
+            for (let i = 0; i < settings.nodes.length; i++) {
+                const res = await axios.get(`${settings.nodes[i].url}/container/all/actions/kill`, {
+                    headers: {
+                        'password': settings.nodes[i].password
+                    }
                 });
-            });
-            resolve(true);
+                if (res.data.status === "KILLED") {
+                    resolve(true)
+                } else {
+                    reject(res.data.status)
+                }
+            }
         })
     },
-    // The two below are not used yet.
-    removeContainer: async (id) => {
-        return new Promise(async (resolve, reject) => {
-            const container = docker.getContainer(id);
-            if (!container.Name) return reject(false)
-            container.remove()
-            resolve(true)
-        })
-    },
-    createContainer: async (name, image, ports) => {
-        docker.createContainer({
-            Image: image,
-            name: name,
-            AttachStdin: true,
-            AttachStdout: true,
-            AttachStderr: true,
-            Tty: true,
-            HostConfig: {
-                PortBindings: {
-                    '80/tcp': [{ HostPort: '80' }], '443/tcp': [{ HostPort: '443' }]
-                },
-            },
-        }).then(function (container) {
-            container.start();
-        })
-    }
 }

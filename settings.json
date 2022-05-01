@@ -9,6 +9,7 @@
     },
     "nodes": [{
         "name": "us01",
-        "url": "7071"
+        "url": "http://localhost:2000",
+        "password": "password"
     }]
 }

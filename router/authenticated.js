@@ -5,7 +5,10 @@ const path = require("path");
 const fs = require('fs')
 
 router.use('*', async (req, res, next) => {
-    if (!req.session.authenticated || req.session.authenticated != true) return res.redirect('/')
+    if (!req.session.authenticated || req.session.authenticated != true) {
+        req.session.redirectTo = req.originalUrl
+        return res.redirect('/')
+    }
 
     next()
 })

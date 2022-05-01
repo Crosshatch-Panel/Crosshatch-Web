@@ -4,10 +4,12 @@
     integrity="sha512-iLYuqv+v/P4u9erpk+KM83Ioe/l7SEmr7wB6g+Kg1qmEit8EShDKnKtLHlv2QXUp7GGJhmqDI+1PhJYLTsfb8w=="
     crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-<a href="/dashboard/container/<%= container_info.Id %>">Go Back</a><br></br>
+<a href="/dashboard/container/<%= container_info.Node.name %>/<%= container_info.Id %>">Go Back</a><br></br>
 
 <h1 id="name">Name: <%= container_info.Name %>
 </h1>
+
+<a>PLEASE KEEP IN MIND: This is not a shell terminal. Everything inputted is a seperate command, so doing things like CDing into a directory, or using any interactive commands, will not work.</a><br>
 
 <a>Websocket Status: <a id="socketStatus" style="color:orange">Connecting...</a></a>
 
@@ -16,7 +18,7 @@
 <script>
     let consoleSocket
     async function connect() {
-        consoleSocket = new WebSocket(`ws://${window.location.host}${window.location.pathname}`);
+        consoleSocket = new WebSocket(`ws://<%= wsurl %>/container/exec?container=<%= container_info.Id %>`);
 
         consoleSocket.onopen = function (event) {
             const socketStatus = document.getElementById('socketStatus');

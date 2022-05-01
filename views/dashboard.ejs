@@ -22,69 +22,52 @@
             <th>State</th>
             <th>Uptime</th>
             <th>ID</th>
+            <th></th>
         </tr>
     </thead>
-    <tbody>
-        <% for (var i=0; i < containers_list.length; i++) { %>
-            <tr id="container_<%= containers_list[i].Id %>">
-                <td><a id="name_<%= containers_list[i].Id %>" href="/dashboard/container/<%= containers_list[i].Id %>">
-                        <%= containers_list[i].Names[0] %>
-                    </a></td>
-                <td id="image_<%= containers_list[i].Id %>">
-                    <%= containers_list[i].Image %>
-                </td>
-                <td id="state_<%= containers_list[i].Id %>">
-                    <%= containers_list[i].State %>
-                </td>
-                <td id="status_<%= containers_list[i].Id %>">
-                    <%= containers_list[i].Status %>
-                </td>
-                <td id="id_<%= containers_list[i].Id %>">
-                    <%= containers_list[i].Id %>
-                </td>
-            </tr>
-            <% } %>
-    </tbody>
 </table>
 
 <script>
-    $(document).ready(function () {
-        $('#containers').DataTable();
-    });
+    const table = new DataTable('#containers', {
+    "ajax": "/dashboard/ajax",
+    responsive: true,
+    "columns": [{
+        "data": "Name"
+    },
+    {
+        "data": "Image"
+    },
+    {
+        "data": "State"
+    },
+    {
+        "data": "Status"
+    },
+    {
+        "data": "Id"
+    },
+    {
+        "data": "Id"
+    },
+    ],
+    "oLanguage": {
+        "sEmptyTable": "There are no officers on duty.",
+    },
+    'fnRowCallback': function (row, data, index) {
+        $(row).find('td:eq(5)').html(
+            '<button class="" onclick="window.location.href = `/dashboard/container/'+data.Node+'/'+data.Id+'`;">View Container</button>'
+        );
+    },
+})
+
+function reloadAjax() {
+    table.ajax.reload(null, false);
+    setTimeout(reloadAjax, 2000);
+}
+reloadAjax();
 </script>
 
 <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-    const socket = new WebSocket(`ws://${window.location.host}${window.location.pathname}`);
-
-    socket.onmessage = function (event) {
-        const json = JSON.parse(event.data)
-
-        for (var i = 0; i < json.length; i++) {
-            const container = document.getElementById(`container_${json[i].Id}`);
-            if (container === null) {
-                const containers = document.getElementById("containers");
-                containers.innerHTML += `<div id="container_${json[i].Id}">
-                    <h2><a id="name_${json[i].Id}" href="/dashboard/container/${json[i].Id}">Name: ${json[i].Names[0]}</a></h2>
-                    <a id="image_${json[i].Id}">Image: ${json[i].Image}</a><br>
-                    <a id="state_${json[i].Id}">State: ${json[i].State}</a><br>
-                    <a id="status_${json[i].Id}">Uptime: ${json[i].Status}</a><br>
-                    <a id="id_${json[i].Id}">Container ID: ${json[i].Id}</a><br>
-                </div>`;
-            } else {
-                document.getElementById(`name_${json[i].Id}`).innerHTML = `${json[i].Names[0]}`
-                document.getElementById(`image_${json[i].Id}`).innerHTML = `${json[i].Image}`
-                document.getElementById(`state_${json[i].Id}`).innerHTML = `${json[i].State}`
-                document.getElementById(`status_${json[i].Id}`).innerHTML = `${json[i].Status}`
-                document.getElementById(`id_${json[i].Id}`).innerHTML = `${json[i].Id}`
-            }
-        }
-    }
-
-    setInterval(function () {
-        socket.send("data")
-    }, 1000);
-</script>
 
 <script>
     async function start() {
@@ -93,7 +76,7 @@
         if (response.status === 'STARTED') {
             Swal.fire({
                 title: 'Success',
-                text: 'The startup signal has been sent to all contianers. Please give them a minute to boot.',
+                text: 'The startup signal has been sent to all contianers. Please give them a minute to boot. This could take a long time depending on how many nodes you have added.',
                 icon: 'success'
             })
         } else {
@@ -113,7 +96,7 @@
         if (response.status === 'STOPPED') {
             Swal.fire({
                 title: 'Success',
-                text: 'The stop signal has been sent to all contianers. Please give them a minute to shutdown.',
+                text: 'The stop signal has been sent to all contianers. Please give them a minute to shutdown. This could take a long time depending on how many nodes you have added.',
                 icon: 'success'
             })
         } else {
@@ -133,7 +116,7 @@
         if (response.status === 'KILLED') {
             Swal.fire({
                 title: 'Success',
-                text: 'The kill signal has been sent to all contianers. Please give them a minute to shutdown.',
+                text: 'The kill signal has been sent to all contianers. Please give them a minute to shutdown. This could take a long time depending on how many nodes you have added.',
                 icon: 'success'
             })
         } else {

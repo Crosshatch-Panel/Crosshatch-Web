@@ -15,7 +15,10 @@ router.get('/test', async (req, res) => {
 router.post('/auth/login', async (req, res) => {
     if (settings.auth.password == req.body.password) {
         req.session.authenticated = true;
-        res.redirect('/dashboard')
+        if (req.session.redirectTo === "/favicon.ico") return res.redirect('/dashboard')
+        if (req.session.redirectTo.includes("ajax")) return res.redirect('/dashboard')
+        if (!req.session.redirectTo) return res.redirect('/dashboard')
+        res.redirect(req.session.redirectTo)
     } else {
         res.redirect('/?err=INCORRECTPASS')
     }

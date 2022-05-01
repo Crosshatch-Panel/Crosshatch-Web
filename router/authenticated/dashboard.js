@@ -1,108 +1,80 @@
 const express = require('express');
 const router = express.Router();
+const settings = require('../../settings.json');
 
 const controller = require('../../controller')
 
 router.get('/dashboard', async (req, res) => {
-    const containers = await controller.listAll().catch(error => { res.send(error) })
-
-    res.render("dashboard", { containers_list: containers })
+    res.render("dashboard")
 });
 
-router.ws('/dashboard', async (ws, req) => {
-    ws.on('message', async function (msg) {
-        const containers = await controller.listAll().catch(error => { ws.send(error) })
-        ws.send(JSON.stringify(containers))
-    });
-})
+router.get('/dashboard/ajax', async (req, res) => {
+    const containers = await controller.listAll().catch(error => { res.send(error) })
 
-router.get('/dashboard/container/:id', async (req, res) => {
-    if (!req.params.id) return res.send("Unknown container")
-    const container = await controller.getInfo(req.params.id).catch(error => { return res.send("Invalid container ID") })
+    res.json({ data: containers })
+});
+
+router.get('/dashboard/container/:node/:id', async (req, res) => {
+    if (!req.params.node) return res.send("No node specified")
+    if (!req.params.id) return res.send("No container specified")
+    const container = await controller.getInfo(req.params.node, req.params.id).catch(error => { return res.send("Invalid container ID") })
     res.render("container_overview", { container_info: container })
 });
 
-router.ws('/dashboard/container/:id', async (ws, req) => {
-    ws.on('message', async function (msg) {
-        if (!req.params.id) {
-            ws.send("No Container Specified")
-            return ws.close()
-        }
-        const container = await controller.getInfo(req.params.id).catch(error => {
-            ws.send("Invalid container ID")
-            return ws.close()
-        })
-        ws.send(JSON.stringify(container))
-    });
-})
-
-router.get('/dashboard/container/:id/exec', async (req, res) => {
-    if (!req.params.id) return res.send("Unknown container")
-    const container = await controller.getInfo(req.params.id).catch(error => { return res.send("Invalid container ID") })
-    res.render("container_exec", { container_info: container })
-})
-
-router.ws('/dashboard/container/:id/exec', async (ws, req) => {
-    if (!req.params.id) {
-        ws.send("No Container Specified")
-        return ws.close()
-    }
-    ws.send("\u001b[32m[CROSSHATCH] Connection established.\u001b[0m")
-    const container = await controller.getContainer(req.params.id).catch(error => {
-        ws.send("Invalid container ID")
-        return ws.close()
-    })
-    ws.on('message', function (msg) {
-        const options = {
-            'AttachStdout': true,
-            'AttachStderr': true,
-            'Tty': true,
-            Cmd: ["/bin/bash", "-c", msg]
-        };
-        container.exec(options, async function (err, exec) {
-            if (err) {
-                if (err.statusCode = 409) {
-                    return ws.send("\u001b[31;1m[CROSSHATCH] Container not running. Please start it to be able to use the EXEC console.\u001b[0m")
-                }
-            }
-            const attach_opts = { 'Detach': false, 'Tty': true, stream: true, stdin: true, stdout: true, stderr: true };
-            exec.start(attach_opts, function (err, stream) {
-                stream.on('data', chunk => {
-                    ws.send(chunk.toString("utf8"))
-                    if (ws.readyState != 1) return stream.destroy();
-                })
-            });
-        });
-    });
-})
-
-router.post('/dashboard/container/:id/actions/start', async (req, res) => {
+router.get('/dashboard/container/:node/:id/ajax', async (req, res) => {
+    if (!req.params.node) return res.send("No node specified")
     if (!req.params.id) return res.send("No container specified")
-    if (req.params.id === "all") {
-        await controller.startAllContainers().catch(error => { return res.send(err) })
-    } else {
-        await controller.startContainer(req.params.id).catch(error => { return res.send("Invalid container ID") })
+    const container = await controller.getInfo(req.params.node, req.params.id).catch(error => { return res.send("Invalid container ID") })
+    res.json({ container_info: container })
+});
+
+router.get('/dashboard/container/:node/:id/exec', async (req, res) => {
+    if (!req.params.node) return res.send("No node specified")
+    if (!req.params.id) return res.send("No container specified")
+    const container = await controller.getInfo(req.params.node, req.params.id).catch(error => { return res.send("Invalid container ID") })
+    const node_name = settings.nodes.find(nodes => nodes.name === req.params.node)
+    if (!node_name) return res.send("Invalid node")
+    function removeHttp(url) {
+        return url.replace(/^https?:\/\//, '');
     }
+
+    let wsurl = removeHttp(node_name.url)
+    res.render("container_exec", { container_info: container, wsurl: wsurl })
+})
+
+router.post('/dashboard/container/all/actions/:action', async (req, res) => {
+    let STATUS;
+    if (req.params.action == "start") {
+        STATUS = "STARTED"
+        await controller.startAllContainers().catch(err => { return res.send(err) })
+    } else if (req.params.action == "stop") {
+        STATUS = "STOPPED"
+        await controller.stopAllContainers().catch(err => { return res.send(err) })
+    } else if (req.params.action == "kill") {
+        STATUS = "KILLED"
+        await controller.killAllContainers().catch(err => { return res.send(err) })
+    }
+    return res.json({ "status": STATUS })
+});
+
+router.post('/dashboard/container/:node/:id/actions/start', async (req, res) => {
+    if (!req.params.node) return res.send("No node specified")
+    if (!req.params.id) return res.send("No container specified")
+    await controller.startContainer(req.params.node, req.params.id).catch(err => { return res.send("Invalid container ID") })
     return res.json({ "status": "STARTED" })
 });
 
-router.post('/dashboard/container/:id/actions/stop', async (req, res) => {
+router.post('/dashboard/container/:node/:id/actions/stop', async (req, res) => {
+    if (!req.params.node) return res.send("No node specified")
     if (!req.params.id) return res.send("No container specified")
-    if (req.params.id === "all") {
-        await controller.stopAllContainers().catch(error => { return res.send(err) })
-    } else {
-        await controller.stopContainer(req.params.id).catch(error => { return res.send("Invalid container ID") })
-    }
+    await controller.stopContainer(req.params.node, req.params.id).catch(err => { return res.send("Invalid container ID") })
     return res.json({ "status": "STOPPED" })
 });
 
-router.post('/dashboard/container/:id/actions/kill', async (req, res) => {
+router.post('/dashboard/container/:node/:id/actions/kill', async (req, res) => {
+    if (!req.params.node) return res.send("No node specified")
     if (!req.params.id) return res.send("No container specified")
-    if (req.params.id === "all") {
-        await controller.killAllContainers().catch(error => { return res.send(err) })
-    } else {
-        await controller.killContainer(req.params.id).catch(error => { return res.send("Invalid container ID") })
-    }
+    await controller.killContainer(req.params.node, req.params.id).catch(err => { return res.send("Invalid container ID") })
     return res.json({ "status": "KILLED" })
 });
 
